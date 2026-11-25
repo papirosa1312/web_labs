@@ -49,3 +49,7 @@ npm start
 ## Observability (Практична 8)
 * **Звіт (60 та 75 балів):** [docs/observability/report.md](./docs/observability/report.md)
 * **JSON власного RED-дашборду:** [docs/observability/my-demo-red-dashboard.json](./docs/observability/my-demo-red-dashboard.json)
+
+## Kubernetes: теоретична схема (Практична 9)
+* **Опис та схема:** [docs/k8s-theory/description.md](./docs/k8s-theory/description.md)
+* **Зображення схеми:** [docs/k8s-theory/k8s_architecture.png](./docs/k8s-theory/k8s_architecture.png)
