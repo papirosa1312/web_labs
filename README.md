@@ -91,4 +91,4 @@ docker run --name music-api --rm -d -p 3000:3000 music-store-api:1.0.0
 * Зображення схеми: [docs/k8s-theory/k8s_architecture.png](./docs/k8s-theory/k8s_architecture.png)
 
 ### Практичне розгортання в Minikube (Практична 10)
-* Репозиторій (fork `k8s-demo`) та звіт `REPORT.md`: *(додай посилання на свій форк)*
+* Репозиторій (fork `k8s-demo`) 
