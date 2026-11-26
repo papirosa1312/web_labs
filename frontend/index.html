@@ -3,237 +3,522 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Music Store — Resilience Demo</title>
+  <title>Music Store — Управління каталогом</title>
   <style>
+    :root {
+      --bg: #141519;
+      --surface: #1e2026;
+      --surface-hover: #262932;
+      --border: #2e323d;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --accent: #facc15;
+      --accent-hover: #eab308;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: sans-serif;
-      max-width: 650px;
-      margin: 40px auto;
-      padding: 0 20px;
-      background: #121212;
-      color: #f1f1f1;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
     }
-    .banner {
-      display: none;
-      padding: 12px;
-      margin-bottom: 16px;
-      background: #d63031;
-      color: #fff;
-      border-radius: 6px;
-      font-weight: bold;
+
+    header {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(20, 21, 25, 0.94);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
-    .row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-    input {
-      padding: 10px;
-      font-size: 15px;
-      border-radius: 6px;
-      border: 1px solid #444;
-      background: #1e1e1e;
-      color: #fff;
-      flex: 1;
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .brand { font-size: 20px; font-weight: 700; color: var(--accent); }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; padding: 4px 10px; border-radius: 999px;
+      background: #1b2e22; color: #4ade80; border: 1px solid #166534;
     }
+    .status-pill.degraded {
+      background: #331919; color: #f87171; border-color: #991b1b;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+
     button {
-      padding: 10px 16px;
-      font-size: 15px;
-      cursor: pointer;
-      background: #6c5ce7;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
+      cursor: pointer; border: none; border-radius: 8px;
+      font-family: inherit; font-weight: 600; font-size: 14px;
+      transition: 0.15s ease;
     }
-    button:disabled { background: #555; cursor: not-allowed; }
-    pre {
-      background: #1e1e1e;
-      padding: 12px;
-      border-radius: 6px;
-      overflow-x: auto;
-      font-size: 13px;
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #111; padding: 9px 16px; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-secondary {
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); padding: 9px 14px;
     }
+    .btn-secondary:hover:not(:disabled) { background: var(--surface-hover); }
+    .btn-danger {
+      background: transparent; color: var(--danger);
+      border: 1px solid rgba(239,68,68,0.35); padding: 7px 12px; font-size: 13px;
+    }
+    .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.12); }
+
+    #degradedBanner {
+      display: none;
+      background: #451a1a; border-bottom: 1px solid #991b1b;
+      color: #fecaca; padding: 12px 28px;
+      text-align: center; font-size: 14px;
+    }
+    #degradedBanner.show { display: flex; align-items: center; justify-content: center; gap: 12px; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 18px;
+    }
+    .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; color: var(--accent); }
+
+    .toolbar {
+      display: flex; flex-wrap: wrap; align-items: center;
+      justify-content: space-between; gap: 14px; margin-bottom: 22px;
+    }
+    .search-box {
+      flex: 1; min-width: 240px; max-width: 400px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 14px; border-radius: 8px; font-size: 14px;
+    }
+    .search-box:focus { outline: none; border-color: var(--accent); }
+
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+    .filter-btn {
+      background: var(--surface); color: var(--muted);
+      border: 1px solid var(--border); padding: 7px 14px; border-radius: 999px; font-size: 13px;
+    }
+    .filter-btn.active { background: var(--accent); color: #111; border-color: var(--accent); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px;
+      display: flex; flex-direction: column; gap: 10px;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .card:hover { transform: translateY(-2px); border-color: #3f4554; }
+    .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .card-cat {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--accent); font-weight: 700;
+    }
+    .stock-badge {
+      font-size: 12px; padding: 3px 9px; border-radius: 999px;
+      background: #1b2e22; color: #4ade80;
+    }
+    .stock-badge.out { background: #331919; color: #f87171; }
+    .card-title { font-size: 18px; font-weight: 700; }
+    .card-meta { font-size: 12px; color: var(--muted); font-family: monospace; }
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);
+    }
+    .price { font-size: 20px; font-weight: 700; }
+    .card-actions { display: flex; gap: 8px; }
+
+    .empty-state {
+      grid-column: 1 / -1; text-align: center;
+      padding: 48px 20px; background: var(--surface);
+      border: 1px dashed var(--border); border-radius: var(--radius); color: var(--muted);
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 40;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(3px);
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); width: 100%; max-width: 440px; padding: 22px;
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .close-btn { background: transparent; color: var(--muted); font-size: 22px; padding: 2px 8px; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .form-group input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 14px;
+    }
+    .form-group input:focus { outline: none; border-color: var(--accent); }
+    .form-error {
+      display: none; background: #331919; border: 1px solid #991b1b;
+      color: #fecaca; padding: 10px 12px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 14px;
+    }
+    .form-error.show { display: block; }
+
+    /* Toasts */
+    #toastContainer {
+      position: fixed; right: 20px; bottom: 20px; z-index: 60;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+      background: var(--surface); border-left: 4px solid var(--accent);
+      border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 12px 16px; border-radius: 8px; font-size: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.45); min-width: 260px;
+    }
+    .toast.error { border-left-color: var(--danger); }
+    .toast.success { border-left-color: var(--success); }
   </style>
 </head>
 <body>
-  <h1>Music Store — Замовлення</h1>
+  <header>
+    <div class="header-left">
+      <div class="brand">🎸 Music Store</div>
+      <div id="statusPill" class="status-pill">
+        <span class="status-dot"></span>
+        <span id="statusText">Перевірка...</span>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-secondary" id="refreshBtn">↻ Оновити</button>
+      <button class="btn-primary" id="addBtn">+ Додати товар</button>
+    </div>
+  </header>
 
-  <div id="degradedBanner" class="banner">
-    Сервер перевантажено (Degraded mode). Кнопки тимчасово вимкнено на 5 секунд...
+  <div id="degradedBanner">
+    <span>⚠️ Сервер тимчасово недоступний або перевантажений (Degraded Mode).</span>
+    <button class="btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="init()">Повторити</button>
   </div>
 
-  <div class="row">
-    <input id="titleInput" type="text" placeholder="Назва інструменту (напр. Gibson Les Paul)" value="Gibson Les Paul" />
-    <button id="orderBtn">Створити замовлення</button>
-    <button id="doubleBtn">Тест подвійного кліку</button>
+  <main>
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Усього товарів</div>
+        <div class="stat-value" id="statCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Одиниць на складі</div>
+        <div class="stat-value" id="statStock">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Категорій</div>
+        <div class="stat-value" id="statCats">0</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <input id="searchInput" class="search-box" type="text" placeholder="Пошук за назвою або ID..." />
+      <div class="filters" id="categoryFilters"></div>
+    </div>
+
+    <div id="catalogGrid" class="grid"></div>
+  </main>
+
+  <!-- Modal: Create / Edit Product -->
+  <div id="productModal" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Новий товар</h2>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div id="formError" class="form-error"></div>
+      <form id="productForm">
+        <input type="hidden" id="editId" />
+        <div class="form-group">
+          <label>Назва (name) *</label>
+          <input id="prodName" required placeholder="Fender Stratocaster" />
+        </div>
+        <div class="form-group">
+          <label>Ціна, $ (price) *</label>
+          <input id="prodPrice" type="number" min="0" step="0.01" required placeholder="850" />
+        </div>
+        <div class="form-group">
+          <label>Кількість на складі (stock)</label>
+          <input id="prodStock" type="number" min="0" step="1" placeholder="5" />
+        </div>
+        <div class="form-group">
+          <label>Категорія (category)</label>
+          <input id="prodCategory" placeholder="Guitars" />
+        </div>
+        <button type="submit" id="saveBtn" class="btn-primary" style="width:100%;">Зберегти</button>
+      </form>
+    </div>
   </div>
 
-  <div class="row">
-    <button id="healthBtn">Перевірити /health (таймаут 1с)</button>
-  </div>
-
-  <pre id="output">Очікування дій...</pre>
+  <div id="toastContainer"></div>
 
   <script>
-    const API_URL = "http://localhost:3000";
-    const output = document.getElementById("output");
-    const banner = document.getElementById("degradedBanner");
-    const buttons = [
-      document.getElementById("orderBtn"),
-      document.getElementById("doubleBtn"),
-      document.getElementById("healthBtn")
-    ];
+    // Порт вашого Music Store API (змініть, якщо у вас інший, напр. 8080 або 5000)
+    const API_BASE = 'http://localhost:3000';
 
-    let consecutiveFailures = 0;
-    const DEGRADED_THRESHOLD = 3;
+    let products = [];
+    let activeCategory = 'all';
 
-    function log(msg) {
-      output.textContent = typeof msg === "string" ? msg : JSON.stringify(msg, null, 2);
+    function showToast(msg, type = 'info') {
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.textContent = msg;
+      document.getElementById('toastContainer').appendChild(el);
+      setTimeout(() => el.remove(), 3500);
     }
 
-    function recordResult(ok) {
-      if (ok) {
-        consecutiveFailures = 0;
-        return;
-      }
-      consecutiveFailures++;
-      if (consecutiveFailures >= DEGRADED_THRESHOLD) {
-        banner.style.display = "block";
-        buttons.forEach((b) => (b.disabled = true));
-        setTimeout(() => {
-          consecutiveFailures = 0;
-          banner.style.display = "none";
-          buttons.forEach((b) => (b.disabled = false));
-        }, 5000);
-      }
+    function setDegradedMode(isDegraded) {
+      document.getElementById('degradedBanner').classList.toggle('show', isDegraded);
+      const pill = document.getElementById('statusPill');
+      pill.classList.toggle('degraded', isDegraded);
+      document.getElementById('statusText').textContent = isDegraded ? 'Degraded Mode' : 'API Online';
+      document.getElementById('addBtn').disabled = isDegraded;
     }
 
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-    const backoff = (base, attempt, jitter) =>
-      base * 2 ** attempt + (jitter ? Math.floor(Math.random() * 100) : 0);
-
-    // HTTP-хелпер із таймаутом (AbortController), ретраями та Retry-After
-    async function fetchWithResilience(url, opts = {}) {
-      const { retry = {}, idempotencyKey, requestId, __a = 0, ...init } = opts;
-      const { retries = 2, baseDelayMs = 250, timeoutMs = 3000, jitter = true } = retry;
-
-      const headers = new Headers(init.headers || {});
-      headers.set("Content-Type", "application/json");
-      if (idempotencyKey) headers.set("Idempotency-Key", idempotencyKey);
-      headers.set("X-Request-Id", requestId ?? crypto.randomUUID());
-
+    // HTTP-клієнт із таймаутом (AbortController), X-Request-Id, Retry-After (429) та backoff+jitter (5xx)
+    async function fetchWithResilience(path, opts = {}, retries = 2, attempt = 0) {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const timeout = setTimeout(() => controller.abort(), 3000);
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Request-Id': crypto.randomUUID(),
+        ...(opts.headers || {})
+      };
 
       try {
-        const res = await fetch(url, { ...init, headers, signal: controller.signal });
-
-        if (res.status === 429 && retries >= 1) {
-          const ra = Number(res.headers.get("Retry-After") || 1) * 1000;
-          await sleep(ra);
-          return fetchWithResilience(url, {
-            ...opts,
-            retry: { ...retry, retries: retries - 1 }
-          });
+        const res = await fetch(`${API_BASE}${path}`, { ...opts, headers, signal: controller.signal });
+        if (res.status === 429 && retries > 0) {
+          const waitMs = Number(res.headers.get('Retry-After') || 2) * 1000;
+          await new Promise(r => setTimeout(r, waitMs));
+          return fetchWithResilience(path, opts, retries - 1, attempt + 1);
         }
-
-        if ([500, 502, 503, 504].includes(res.status) && retries >= 1) {
-          await sleep(backoff(baseDelayMs, __a, jitter));
-          return fetchWithResilience(url, {
-            ...opts,
-            __a: __a + 1,
-            retry: { ...retry, retries: retries - 1 }
-          });
+        if (res.status >= 500 && retries > 0) {
+          const delay = 300 * (2 ** attempt) + Math.floor(Math.random() * 100);
+          await new Promise(r => setTimeout(r, delay));
+          return fetchWithResilience(path, opts, retries - 1, attempt + 1);
         }
-
+        setDegradedMode(false);
         return res;
       } catch (err) {
-        if (retries >= 1) {
-          await sleep(backoff(baseDelayMs, __a, jitter));
-          return fetchWithResilience(url, {
-            ...opts,
-            __a: __a + 1,
-            retry: { ...retry, retries: retries - 1 }
-          });
+        if (retries > 0) {
+          const delay = 300 * (2 ** attempt) + Math.floor(Math.random() * 100);
+          await new Promise(r => setTimeout(r, delay));
+          return fetchWithResilience(path, opts, retries - 1, attempt + 1);
         }
+        setDegradedMode(true);
         throw err;
       } finally {
-        clearTimeout(timer);
+        clearTimeout(timeout);
       }
     }
 
-    // Генерація та кешування Idempotency-Key по хешу payload
-    async function payloadHash(obj) {
-      const data = new TextEncoder().encode(JSON.stringify(obj));
-      const digest = await crypto.subtle.digest("SHA-256", data);
-      return Array.from(new Uint8Array(digest))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
+    function formatApiError(errBody) {
+      if (!errBody) return 'Невідома помилка сервера';
+      if (Array.isArray(errBody.details) && errBody.details.length) {
+        return errBody.details.map(d => `${d.field}: ${d.message}`).join('; ');
+      }
+      return errBody.message || errBody.error || errBody.code || 'Помилка запиту';
     }
 
-    async function getOrReuseKey(payload) {
-      const h = await payloadHash(payload);
-      const existing = localStorage.getItem(`idem:${h}`);
-      if (existing) return existing;
-      const fresh = crypto.randomUUID();
-      localStorage.setItem(`idem:${h}`, fresh);
-      return fresh;
-    }
-
-    // 1. Звичайне створення замовлення
-    document.getElementById("orderBtn").addEventListener("click", async () => {
-      const title = document.getElementById("titleInput").value.trim() || "Untitled";
-      const payload = { title };
-      log("Відправка запиту...");
+    async function checkHealth() {
       try {
-        const idemKey = await getOrReuseKey(payload);
-        const res = await fetchWithResilience(`${API_URL}/orders`, {
-          method: "POST",
-          body: JSON.stringify(payload),
-          idempotencyKey: idemKey,
-          retry: { retries: 2, baseDelayMs: 300, timeoutMs: 3500, jitter: true }
-        });
+        const res = await fetchWithResilience('/health', {}, 1);
         const data = await res.json();
-        recordResult(res.ok);
-        log({ status: res.status, requestId: res.headers.get("X-Request-Id"), data });
-      } catch (err) {
-        recordResult(false);
-        log(`Помилка запиту: ${err.message}`);
+        setDegradedMode(!(res.ok && data.status === 'ok'));
+      } catch {
+        setDegradedMode(true);
       }
-    });
+    }
 
-    // 2. Демонстрація подвійного кліку (обидва повертають однаковий id)
-    document.getElementById("doubleBtn").addEventListener("click", async () => {
-      const title = document.getElementById("titleInput").value.trim() || "Untitled";
-      const payload = { title };
-      log("Відправка 2 паралельних запитів з одним Idempotency-Key...");
+    async function loadProducts() {
       try {
-        const key = await getOrReuseKey(payload);
-        const [r1, r2] = await Promise.all([
-          fetchWithResilience(`${API_URL}/orders`, { method: "POST", body: JSON.stringify(payload), idempotencyKey: key }),
-          fetchWithResilience(`${API_URL}/orders`, { method: "POST", body: JSON.stringify(payload), idempotencyKey: key })
-        ]);
-        const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
-        recordResult(r1.ok && r2.ok);
-        log({ first: d1, second: d2 });
-      } catch (err) {
-        recordResult(false);
-        log(`Помилка: ${err.message}`);
+        const res = await fetchWithResilience('/products');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        products = await res.json();
+        renderStats();
+        renderCategories();
+        renderCatalog();
+      } catch {
+        renderCatalog(true);
       }
-    });
+    }
 
-    // 3. Перевірка /health з жорстким таймаутом 1 секунда (AbortController)
-    document.getElementById("healthBtn").addEventListener("click", async () => {
-      log("Перевірка /health (ліміт 1с)...");
+    function renderStats() {
+      document.getElementById('statCount').textContent = products.length;
+      const totalStock = products.reduce((s, p) => s + (Number(p.stock) || 0), 0);
+      document.getElementById('statStock').textContent = totalStock;
+      const cats = new Set(products.map(p => p.category).filter(Boolean));
+      document.getElementById('statCats').textContent = cats.size;
+    }
+
+    function renderCategories() {
+      const cats = ['all', ...new Set(products.map(p => p.category || 'Без категорії'))];
+      if (!cats.includes(activeCategory)) activeCategory = 'all';
+      document.getElementById('categoryFilters').innerHTML = cats.map(c => `
+        <button class="filter-btn ${activeCategory === c ? 'active' : ''}" data-cat="${c}">
+          ${c === 'all' ? 'Усі' : c}
+        </button>
+      `).join('');
+    }
+
+    function renderCatalog(isError = false) {
+      const grid = document.getElementById('catalogGrid');
+      if (isError) {
+        grid.innerHTML = `<div class="empty-state">Не вдалося завантажити товари з <code>${API_BASE}/products</code>. Перевірте, чи запущений сервер та увімкнений CORS.</div>`;
+        return;
+      }
+
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const filtered = products.filter(p => {
+        const cat = p.category || 'Без категорії';
+        const matchCat = activeCategory === 'all' || cat === activeCategory;
+        const matchText = (p.name || '').toLowerCase().includes(q) || (p.id || '').toLowerCase().includes(q);
+        return matchCat && matchText;
+      });
+
+      if (!filtered.length) {
+        grid.innerHTML = `<div class="empty-state">Товарів поки немає. Натисніть <strong>«+ Додати товар»</strong>, щоб створити перший запис через <code>POST /products</code>.</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(p => {
+        const stock = Number(p.stock ?? 0);
+        return `
+          <div class="card">
+            <div class="card-top">
+              <span class="card-cat">${p.category || 'Без категорії'}</span>
+              <span class="stock-badge ${stock <= 0 ? 'out' : ''}">
+                ${stock > 0 ? `В наявності: ${stock}` : 'Немає на складі'}
+              </span>
+            </div>
+            <div class="card-title">${p.name}</div>
+            <div class="card-meta">ID: ${p.id}</div>
+            <div class="card-footer">
+              <span class="price">$${Number(p.price).toFixed(2)}</span>
+              <div class="card-actions">
+                <button class="btn-secondary" style="padding:7px 11px; font-size:13px;" onclick="openEditModal('${p.id}')">Редагувати</button>
+                <button class="btn-danger" onclick="deleteProduct('${p.id}', '${(p.name || '').replace(/'/g, "\\'")}')">Видалити</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openCreateModal() {
+      document.getElementById('modalTitle').textContent = 'Новий товар (POST /products)';
+      document.getElementById('editId').value = '';
+      document.getElementById('productForm').reset();
+      hideFormError();
+      document.getElementById('productModal').classList.add('open');
+    }
+
+    function openEditModal(id) {
+      const p = products.find(item => item.id === id);
+      if (!p) return;
+      document.getElementById('modalTitle').textContent = `Редагування (PATCH /products/${id})`;
+      document.getElementById('editId').value = p.id;
+      document.getElementById('prodName').value = p.name ?? '';
+      document.getElementById('prodPrice').value = p.price ?? '';
+      document.getElementById('prodStock').value = p.stock ?? 0;
+      document.getElementById('prodCategory').value = p.category ?? '';
+      hideFormError();
+      document.getElementById('productModal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('productModal').classList.remove('open');
+    }
+
+    function showFormError(msg) {
+      const el = document.getElementById('formError');
+      el.textContent = msg;
+      el.classList.add('show');
+    }
+
+    function hideFormError() {
+      document.getElementById('formError').classList.remove('show');
+    }
+
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideFormError();
+      const id = document.getElementById('editId').value;
+      const payload = {
+        name: document.getElementById('prodName').value.trim(),
+        price: Number(document.getElementById('prodPrice').value),
+        stock: Number(document.getElementById('prodStock').value || 0),
+        category: document.getElementById('prodCategory').value.trim() || 'General'
+      };
+
       try {
-        const res = await fetchWithResilience(`${API_URL}/health`, {
-          method: "GET",
-          retry: { retries: 0, timeoutMs: 1000 }
+        const res = await fetchWithResilience(id ? `/products/${id}` : '/products', {
+          method: id ? 'PATCH' : 'POST',
+          headers: id ? {} : { 'Idempotency-Key': crypto.randomUUID() },
+          body: JSON.stringify(payload)
         });
-        const data = await res.json();
-        recordResult(res.ok);
-        log({ status: res.status, data });
-      } catch (err) {
-        recordResult(false);
-        log(`Запит скасовано (таймаут > 1с або помилка): ${err.name}`);
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          showFormError(formatApiError(errData));
+          return;
+        }
+
+        closeModal();
+        showToast(id ? 'Товар оновлено (PATCH)' : 'Товар створено (POST)', 'success');
+        await loadProducts();
+      } catch {
+        showFormError('Сервер недоступний. Спробуйте пізніше.');
       }
     });
+
+    async function deleteProduct(id, name) {
+      if (!confirm(`Видалити «${name}»?`)) return;
+      try {
+        const res = await fetchWithResilience(`/products/${id}`, { method: 'DELETE' });
+        if (res.status === 204 || res.ok) {
+          showToast(`Товар «${name}» видалено`, 'success');
+          await loadProducts();
+        } else {
+          const errData = await res.json().catch(() => null);
+          showToast(formatApiError(errData), 'error');
+        }
+      } catch {
+        showToast('Не вдалося видалити товар (сервер недоступний)', 'error');
+      }
+    }
+
+    document.getElementById('addBtn').addEventListener('click', openCreateModal);
+    document.getElementById('refreshBtn').addEventListener('click', init);
+    document.getElementById('searchInput').addEventListener('input', () => renderCatalog());
+    document.getElementById('categoryFilters').addEventListener('click', (e) => {
+      if (!e.target.classList.contains('filter-btn')) return;
+      activeCategory = e.target.dataset.cat;
+      renderCategories();
+      renderCatalog();
+    });
+
+    async function init() {
+      await checkHealth();
+      await loadProducts();
+    }
+
+    init();
   </script>
 </body>
 </html>
